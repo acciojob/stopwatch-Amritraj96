@@ -1,8 +1,8 @@
-//your code here
 let timerId = null;
 let startTime = 0;
-let elapsedTime = 0; // Tracks total milliseconds passed
+let elapsedTime = 0; 
 let isRunning = false;
+let isPaused = false;
 
 // DOM Elements
 const timeDisplay = document.getElementById("time");
@@ -10,7 +10,7 @@ const startBtn = document.getElementById("start");
 const pauseBtn = document.getElementById("pause");
 const stopBtn = document.getElementById("stop");
 
-// Initial setup on load
+// Initial state
 window.onload = () => {
     resetDisplay();
 };
@@ -19,13 +19,13 @@ function start() {
     if (isRunning) return;
 
     isRunning = true;
-    // Calculate start time relative to already elapsed time
-    startTime = Date.now() - elapsedTime; 
+    isPaused = false;
     
-    // Update the UI at a high frequency (~60 FPS) to maintain accuracy
-    timerId = setInterval(updateTime, 16); 
+    // Set start time relative to any existing elapsed time
+    startTime = Date.now() - elapsedTime; 
+    timerId = setInterval(updateTime, 10); 
 
-    // Button states
+    // Adjust button states per acceptance criteria
     startBtn.disabled = true;
     pauseBtn.disabled = false;
     stopBtn.disabled = false;
@@ -33,56 +33,63 @@ function start() {
 }
 
 function pause() {
-    if (!isRunning) return;
+    if (!isRunning && !isPaused) return;
 
-    if (timerId) {
-        // Pausing the timer
+    if (!isPaused) {
+        // Transitioning to PAUSE state
         clearInterval(timerId);
         timerId = null;
-        isRunning = false;
+        // Capture exact elapsed time up to this millisecond
+        elapsedTime = Date.now() - startTime; 
+        isPaused = true;
+        
         pauseBtn.innerText = "continue";
-        startBtn.disabled = true; // Keep start disabled during pause
+        startBtn.disabled = true; 
+        stopBtn.disabled = false;
     } else {
-        // Continuing from pause
-        isRunning = true;
+        // Transitioning back to RUNNING state (Continue)
+        isPaused = false;
         startTime = Date.now() - elapsedTime;
-        timerId = setInterval(updateTime, 16);
+        timerId = setInterval(updateTime, 10);
+        
         pauseBtn.innerText = "pause";
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
     }
 }
 
 function stop() {
-    // Clear the active interval timer
-    clearInterval(timerId);
-    timerId = null;
+    // Clear any active interval completely
+    if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+    }
+    
+    // Reset all state flags
     isRunning = false;
+    isPaused = false;
     elapsedTime = 0;
 
-    // Reset UI Elements
-    resetDisplay();
+    // Reset UI back to original state
+    timeDisplay.innerText = "00:00:00";
+    pauseBtn.innerText = "pause";
+    
     startBtn.disabled = false;
     pauseBtn.disabled = true;
     stopBtn.disabled = true;
-    pauseBtn.innerText = "pause";
 }
 
 function updateTime() {
+    if (isPaused) return;
+    
     elapsedTime = Date.now() - startTime;
 
-    // Convert milliseconds to total seconds, minutes, and hours
     let totalSeconds = Math.floor(elapsedTime / 1000);
-    
     let seconds = totalSeconds % 60;
     let minutes = Math.floor(totalSeconds / 60) % 60;
     let hours = Math.floor(totalSeconds / 3600);
 
-    // Format as HH:MM:SS with leading zeros
-    let formattedTime = 
-        pad(hours) + ":" + 
-        pad(minutes) + ":" + 
-        pad(seconds);
-
-    timeDisplay.innerText = formattedTime;
+    timeDisplay.innerText = pad(hours) + ":" + pad(minutes) + ":" + pad(seconds);
 }
 
 function pad(number) {
@@ -91,6 +98,8 @@ function pad(number) {
 
 function resetDisplay() {
     timeDisplay.innerText = "00:00:00";
+    startBtn.disabled = false;
     pauseBtn.disabled = true;
     stopBtn.disabled = true;
+    pauseBtn.innerText = "pause";
 }
